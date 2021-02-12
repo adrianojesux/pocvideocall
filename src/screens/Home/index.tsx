@@ -26,14 +26,22 @@ interface State {
 }
 
 const Home: React.FC = () => {
-  const [myState, setMyState] = useState<State>({
-    appId: 'e7539fde070a4d7b9967a7063d5b125a',
-    channelName: 'chanelTeste',
-    token:
-      '006e7539fde070a4d7b9967a7063d5b125aIAD+5XGz+sB/pwXoeZNoTwyhKm77mE5gtbN5HSA0raCwt0ofF6kAAAAAEABT0NwW2z7cXwEAAQDbPtxf',
-    joinSucceed: false,
-    peerIds: [],
-  });
+  // const [myState, setMyState] = useState<State>({
+  //   appId: 'e7539fde070a4d7b9967a7063d5b125a',
+  //   channelName: 'chanelTeste',
+  //   token:
+  //     '006e7539fde070a4d7b9967a7063d5b125aIAC+2/4MCUAmluVi/mSxK5gBY5VBXu1dAgAbBHcUgjSMLEofF6kAAAAAEAB2eXH6tTXdXwEAAQC0Nd1f', //'006e7539fde070a4d7b9967a7063d5b125aIAD+5XGz+sB/pwXoeZNoTwyhKm77mE5gtbN5HSA0raCwt0ofF6kAAAAAEABT0NwW2z7cXwEAAQDbPtxf',
+  //   joinSucceed: false,
+  //   peerIds: [],
+  // });
+  const appId = 'e7539fde070a4d7b9967a7063d5b125a';
+  const channelName = 'chanelTeste';
+  const token =
+    '006e7539fde070a4d7b9967a7063d5b125aIAC+2/4MCUAmluVi/mSxK5gBY5VBXu1dAgAbBHcUgjSMLEofF6kAAAAAEAB2eXH6tTXdXwEAAQC0Nd1f';
+
+  const [joinSucceed, setJoinSucesseed] = useState<boolean>(false);
+  const [peerIds, setPeerIds] = useState<number[]>([]);
+
   let engine: RtcEngine;
 
   useEffect(() => {
@@ -46,27 +54,25 @@ const Home: React.FC = () => {
   }, []);
 
   const init = async () => {
-    engine = await RtcEngine.create(myState?.appId);
+    engine = await RtcEngine.create(appId);
     await engine.enableVideo();
+    await engine.enableAudio();
 
     engine.addListener('UserJoined', (uid, elapsed) => {
       console.log('UserJoined', uid, elapsed);
-      if (myState.peerIds.indexOf(uid) === -1) {
-        setMyState({...myState, peerIds: [...myState.peerIds, uid]});
+      if (peerIds.indexOf(uid) === -1) {
+        setPeerIds([...peerIds, uid]);
       }
     });
 
     engine.addListener('UserOffline', (uid, reason) => {
       console.log('UserOffline', uid, reason);
-      setMyState({
-        ...myState,
-        peerIds: [...myState.peerIds.filter((p) => p !== uid)],
-      });
+      setPeerIds([...peerIds.filter((p) => p !== uid)]);
     });
 
     engine.addListener('JoinChannelSuccess', (channel, uid, elapsed) => {
       console.log('JoinChannelSuccess', channel, uid, elapsed);
-      setMyState({...myState, joinSucceed: true});
+      setJoinSucesseed(true);
     });
   };
 
@@ -96,12 +102,17 @@ const Home: React.FC = () => {
 
   const startCall = async () => {
     if (!engine) await init();
-    await engine.joinChannel(myState.token, myState.channelName, null, 0);
+    await engine.joinChannel(token, channelName, null, 0);
   };
 
   const endCall = async () => {
-    await engine.leaveChannel();
-    setMyState({...myState, peerIds: [], joinSucceed: false});
+    try {
+      await engine.leaveChannel();
+    } catch (error) {
+      console.log('Falha ao encerrar chamada', error);
+    }
+    setPeerIds([]);
+    setJoinSucesseed(false);
   };
 
   const _renderRemoteVideos = () => {
@@ -110,14 +121,15 @@ const Home: React.FC = () => {
         style={styles.remoteContainer}
         contentContainerStyle={{paddingHorizontal: 2.5}}
         horizontal={true}>
-        {myState.peerIds.map((value, index, array) => {
+        {peerIds.map((value, index, array) => {
           return (
             // Set the rendering mode of the video view as Hidden,
             // which uniformly scales the video until it fills the visible boundaries.
             <RtcRemoteView.SurfaceView
               style={styles.remote}
+              key={index}
               uid={value}
-              channelId={myState.channelName}
+              channelId={channelName}
               renderMode={VideoRenderMode.Hidden}
               zOrderMediaOverlay={true}
             />
@@ -128,13 +140,13 @@ const Home: React.FC = () => {
   };
 
   const _renderVideos = () => {
-    console.log(myState);
-    myState.joinSucceed ? (
+    return joinSucceed ? (
       <View style={styles.fullView}>
+        <Text>Video Conectado</Text>
         <RtcLocalView.SurfaceView
           style={styles.max}
-          channelId={myState.channelName}
-          renderMode={VideoRenderMode.FILL}
+          channelId={channelName}
+          renderMode={VideoRenderMode.Hidden}
         />
         {_renderRemoteVideos()}
       </View>

@@ -5,6 +5,8 @@ const dimensions = {
   height: Dimensions.get('window').height,
 };
 
+console.log('dimensions', dimensions);
+
 const styles = StyleSheet.create({
   max: {
     flex: 1,
@@ -28,7 +30,7 @@ const styles = StyleSheet.create({
   fullView: {
     width: dimensions.width,
     height: dimensions.height - 100,
-    backgroundColor: '#ddd',
+    backgroundColor: '#000000',
   },
   remoteContainer: {
     width: '100%',
